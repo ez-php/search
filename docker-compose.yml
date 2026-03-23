@@ -1,0 +1,29 @@
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+      args:
+        WWWUSER: 1000
+        WWWGROUP: 1000
+    container_name: ez-php-search-app
+    volumes:
+      - .:/var/www/html
+    working_dir: /var/www/html
+    env_file:
+      - .env
+    depends_on:
+      meilisearch:
+        condition: service_started
+
+  meilisearch:
+    image: getmeili/meilisearch:v1.13
+    container_name: ez-php-search-meilisearch
+    ports:
+      - "${MEILISEARCH_PORT:-7700}:7700"
+    environment:
+      MEILI_MASTER_KEY: "${MEILISEARCH_KEY:-}"
+      MEILI_NO_ANALYTICS: "true"
+    tmpfs:
+      - /meili_data

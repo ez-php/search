@@ -1,7 +1,7 @@
 {
   "name": "ez-php/search",
-  "version": "0.9.0",
-  "description": "TODO",
+  "version": "0.9.1",
+  "description": "Full-text search module for ez-php — Meilisearch and Elasticsearch drivers with event-driven index synchronisation",
   "type": "library",
   "license": "MIT",
   "authors": [
@@ -10,17 +10,20 @@
       "email": "andreas.uretschnig@gmail.com"
     }
   ],
-  "keywords": ["search", "php", "framework", "ez-php"],
+  "keywords": ["search", "meilisearch", "elasticsearch", "full-text", "php", "framework", "ez-php"],
   "homepage": "https://github.com/ez-php/search",
   "support": {
     "issues": "https://github.com/ez-php/search/issues",
     "source": "https://github.com/ez-php/search"
   },
   "require": {
-    "php": "^8.5"
+    "php": "^8.5",
+    "ez-php/contracts": "0.*",
+    "ez-php/events": "0.*"
   },
   "require-dev": {
     "ez-php/docker": "0.*",
+    "ez-php/testing-application": "0.*",
     "phpunit/phpunit": "^13.0",
     "phpstan/phpstan": "^2.1",
     "friendsofphp/php-cs-fixer": "^3.94",
