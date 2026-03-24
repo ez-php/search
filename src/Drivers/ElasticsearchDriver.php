@@ -188,7 +188,6 @@ final class ElasticsearchDriver implements SearchDriverInterface
         $rawResponse = curl_exec($ch);
         $statusCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlError = curl_error($ch);
-        curl_close($ch);
 
         if (!is_string($rawResponse)) {
             throw new SearchException("Elasticsearch cURL error for {$method} {$url}: {$curlError}");

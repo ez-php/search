@@ -51,7 +51,8 @@ final class MeilisearchDriver implements SearchDriverInterface
     {
         // Meilisearch identifies documents by a primary key field inside the document.
         $document['id'] = $id;
-        $this->request('POST', "/indexes/{$indexName}/documents", [$document]);
+        $response = $this->request('POST', "/indexes/{$indexName}/documents", [$document]);
+        $this->waitForTask($response);
     }
 
     /**
@@ -62,7 +63,8 @@ final class MeilisearchDriver implements SearchDriverInterface
      */
     public function remove(string $indexName, string|int $id): void
     {
-        $this->request('DELETE', "/indexes/{$indexName}/documents/{$id}");
+        $response = $this->request('DELETE', "/indexes/{$indexName}/documents/{$id}");
+        $this->waitForTask($response);
     }
 
     /**
@@ -126,7 +128,67 @@ final class MeilisearchDriver implements SearchDriverInterface
      */
     public function flush(string $indexName): void
     {
-        $this->request('DELETE', "/indexes/{$indexName}/documents");
+        $response = $this->request('DELETE', "/indexes/{$indexName}/documents");
+        $this->waitForTask($response, ['index_not_found']);
+    }
+
+    /**
+     * Wait for a Meilisearch task to reach a terminal state (succeeded or failed).
+     *
+     * Mutations (index, remove, flush) return a task envelope. This method polls
+     * GET /tasks/{taskUid} every 50 ms until the task succeeds, fails, or the
+     * timeout is exceeded.
+     *
+     * Tasks that fail with `index_not_found` are treated as success — the index
+     * was already absent, so there is nothing to mutate (relevant for flush in tests).
+     *
+     * @param mixed    $response       The decoded JSON response from a mutation request.
+     * @param string[] $ignoredErrors  Task error codes to treat as success.
+     *
+     * @return void
+     *
+     * @throws SearchException If the task fails (and the error is not ignored) or the timeout is exceeded.
+     */
+    private function waitForTask(mixed $response, array $ignoredErrors = []): void
+    {
+        if (!is_array($response) || !isset($response['taskUid']) || !is_int($response['taskUid'])) {
+            return;
+        }
+
+        $taskUid = $response['taskUid'];
+        $deadline = microtime(true) + 10.0;
+
+        while (microtime(true) < $deadline) {
+            $task = $this->request('GET', "/tasks/{$taskUid}");
+
+            if (!is_array($task) || !isset($task['status']) || !is_string($task['status'])) {
+                return;
+            }
+
+            if ($task['status'] === 'succeeded') {
+                return;
+            }
+
+            if ($task['status'] === 'failed') {
+                $errorCode = isset($task['error']) && is_array($task['error']) && isset($task['error']['code']) && is_string($task['error']['code'])
+                    ? $task['error']['code']
+                    : '';
+
+                if ($ignoredErrors !== [] && in_array($errorCode, $ignoredErrors, true)) {
+                    return;
+                }
+
+                $errorMessage = isset($task['error']) && is_array($task['error']) && isset($task['error']['message']) && is_string($task['error']['message'])
+                    ? $task['error']['message']
+                    : 'unknown error';
+
+                throw new SearchException("Meilisearch task {$taskUid} failed: {$errorMessage}");
+            }
+
+            usleep(50_000);
+        }
+
+        throw new SearchException("Meilisearch task {$taskUid} did not complete within 10 seconds.");
     }
 
     /**
@@ -170,7 +232,6 @@ final class MeilisearchDriver implements SearchDriverInterface
         $rawResponse = curl_exec($ch);
         $statusCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlError = curl_error($ch);
-        curl_close($ch);
 
         if (!is_string($rawResponse)) {
             throw new SearchException("Meilisearch cURL error for {$method} {$url}: {$curlError}");

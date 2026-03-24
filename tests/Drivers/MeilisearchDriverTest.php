@@ -71,9 +71,6 @@ final class MeilisearchDriverTest extends TestCase
     {
         $this->driver->index(self::TEST_INDEX, 1, ['id' => 1, 'title' => 'Hello World']);
 
-        // Meilisearch indexes asynchronously; allow a short settling time.
-        usleep(200_000);
-
         $result = $this->driver->search(self::TEST_INDEX, 'Hello', new SearchOptions());
 
         $this->assertGreaterThanOrEqual(1, $result->total);
@@ -85,9 +82,7 @@ final class MeilisearchDriverTest extends TestCase
     public function test_remove_document(): void
     {
         $this->driver->index(self::TEST_INDEX, 99, ['id' => 99, 'title' => 'To Delete']);
-        usleep(200_000);
         $this->driver->remove(self::TEST_INDEX, 99);
-        usleep(200_000);
 
         $result = $this->driver->search(self::TEST_INDEX, 'To Delete', new SearchOptions());
 
@@ -101,10 +96,7 @@ final class MeilisearchDriverTest extends TestCase
     {
         $this->driver->index(self::TEST_INDEX, 1, ['id' => 1, 'title' => 'One']);
         $this->driver->index(self::TEST_INDEX, 2, ['id' => 2, 'title' => 'Two']);
-        usleep(200_000);
-
         $this->driver->flush(self::TEST_INDEX);
-        usleep(300_000);
 
         $result = $this->driver->search(self::TEST_INDEX, '', new SearchOptions());
 
@@ -119,8 +111,6 @@ final class MeilisearchDriverTest extends TestCase
         for ($i = 1; $i <= 5; $i++) {
             $this->driver->index(self::TEST_INDEX, $i, ['id' => $i, 'title' => "Document {$i}"]);
         }
-
-        usleep(500_000);
 
         $result = $this->driver->search(
             self::TEST_INDEX,
