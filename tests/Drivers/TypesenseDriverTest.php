@@ -41,10 +41,10 @@ final class TypesenseDriverTest extends TestCase
         parent::setUp();
 
         $host = getenv('TYPESENSE_HOST');
-        $key  = getenv('TYPESENSE_API_KEY');
+        $key = getenv('TYPESENSE_API_KEY');
 
         $resolvedHost = is_string($host) && $host !== '' ? $host : self::HOST;
-        $resolvedKey  = is_string($key) && $key !== '' ? $key : self::API_KEY;
+        $resolvedKey = is_string($key) && $key !== '' ? $key : self::API_KEY;
 
         try {
             $this->driver = new TypesenseDriver($resolvedHost, $resolvedKey);
@@ -143,7 +143,7 @@ final class TypesenseDriverTest extends TestCase
         }
 
         $options = new SearchOptions(offset: 0, limit: 2);
-        $result  = $this->driver->search(self::TEST_INDEX, 'Article', $options);
+        $result = $this->driver->search(self::TEST_INDEX, 'Article', $options);
 
         $this->assertLessThanOrEqual(2, count($result->hits));
         $this->assertGreaterThanOrEqual(2, $result->total);

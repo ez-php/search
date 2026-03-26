@@ -101,10 +101,10 @@ final class TypesenseDriver implements SearchDriverInterface
             : 1;
 
         $params = [
-            'q'        => $query === '' ? '*' : $query,
+            'q' => $query === '' ? '*' : $query,
             'query_by' => '*',
             'per_page' => $options->limit,
-            'page'     => $page,
+            'page' => $page,
         ];
 
         if ($options->filter !== '') {
@@ -122,8 +122,8 @@ final class TypesenseDriver implements SearchDriverInterface
         }
 
         $rawHits = isset($response['hits']) && is_array($response['hits']) ? $response['hits'] : [];
-        $total   = isset($response['found']) && is_int($response['found']) ? $response['found'] : count($rawHits);
-        $took    = isset($response['search_time_ms']) && is_int($response['search_time_ms'])
+        $total = isset($response['found']) && is_int($response['found']) ? $response['found'] : count($rawHits);
+        $took = isset($response['search_time_ms']) && is_int($response['search_time_ms'])
             ? $response['search_time_ms']
             : 0;
 
@@ -135,7 +135,7 @@ final class TypesenseDriver implements SearchDriverInterface
             }
 
             /** @var array<string, mixed> $doc */
-            $doc   = isset($hit['document']) && is_array($hit['document']) ? $hit['document'] : [];
+            $doc = isset($hit['document']) && is_array($hit['document']) ? $hit['document'] : [];
             $rawId = $doc['id'] ?? null;
             $hitId = is_string($rawId) || is_int($rawId) ? (string) $rawId : '';
             $score = isset($hit['text_match']) && is_int($hit['text_match'])
@@ -180,9 +180,9 @@ final class TypesenseDriver implements SearchDriverInterface
     private function createCollection(string $name): void
     {
         $this->request('POST', '/collections', [
-            'name'                  => $name,
-            'fields'                => [['name' => '.*', 'type' => 'auto']],
-            'enable_nested_fields'  => true,
+            'name' => $name,
+            'fields' => [['name' => '.*', 'type' => 'auto']],
+            'enable_nested_fields' => true,
         ]);
     }
 
@@ -230,8 +230,8 @@ final class TypesenseDriver implements SearchDriverInterface
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
         $rawResponse = curl_exec($ch);
-        $statusCode  = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $curlError   = curl_error($ch);
+        $statusCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
 
         curl_close($ch);
 

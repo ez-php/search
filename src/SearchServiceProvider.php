@@ -40,10 +40,10 @@ final class SearchServiceProvider extends ServiceProvider
             $driverName = is_string($driverName) ? $driverName : 'null';
 
             $driver = match ($driverName) {
-                'meilisearch'   => $this->makeMeilisearch($config),
+                'meilisearch' => $this->makeMeilisearch($config),
                 'elasticsearch' => $this->makeElasticsearch($config),
-                'typesense'     => $this->makeTypesense($config),
-                default         => new NullDriver(),
+                'typesense' => $this->makeTypesense($config),
+                default => new NullDriver(),
             };
 
             // The Event facade always provides a dispatcher. If EventServiceProvider is
@@ -77,7 +77,7 @@ final class SearchServiceProvider extends ServiceProvider
     private function makeTypesense(ConfigInterface $config): TypesenseDriver
     {
         $host = $config->get('search.typesense.host', 'http://typesense:8108');
-        $key  = $config->get('search.typesense.key', '');
+        $key = $config->get('search.typesense.key', '');
 
         return new TypesenseDriver(
             is_string($host) ? $host : 'http://typesense:8108',
