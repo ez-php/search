@@ -11,6 +11,7 @@ use EzPhp\Events\Event;
 use EzPhp\Search\Drivers\ElasticsearchDriver;
 use EzPhp\Search\Drivers\MeilisearchDriver;
 use EzPhp\Search\Drivers\NullDriver;
+use EzPhp\Search\Drivers\TypesenseDriver;
 
 /**
  * Class SearchServiceProvider
@@ -18,7 +19,7 @@ use EzPhp\Search\Drivers\NullDriver;
  * Binds SearchIndex to the container using the driver configured via
  * config/search.php (or the SEARCH_DRIVER environment variable).
  *
- * Supported drivers: null (default), meilisearch, elasticsearch
+ * Supported drivers: null (default), meilisearch, elasticsearch, typesense
  *
  * The EventDispatcher is sourced from the Event static facade so that events
  * fired by SearchIndex reach any listeners registered via EventServiceProvider.
@@ -39,9 +40,10 @@ final class SearchServiceProvider extends ServiceProvider
             $driverName = is_string($driverName) ? $driverName : 'null';
 
             $driver = match ($driverName) {
-                'meilisearch' => $this->makeMeilisearch($config),
+                'meilisearch'   => $this->makeMeilisearch($config),
                 'elasticsearch' => $this->makeElasticsearch($config),
-                default => new NullDriver(),
+                'typesense'     => $this->makeTypesense($config),
+                default         => new NullDriver(),
             };
 
             // The Event facade always provides a dispatcher. If EventServiceProvider is
@@ -63,6 +65,22 @@ final class SearchServiceProvider extends ServiceProvider
 
         return new MeilisearchDriver(
             is_string($host) ? $host : 'http://meilisearch:7700',
+            is_string($key) ? $key : '',
+        );
+    }
+
+    /**
+     * @param ConfigInterface $config
+     *
+     * @return TypesenseDriver
+     */
+    private function makeTypesense(ConfigInterface $config): TypesenseDriver
+    {
+        $host = $config->get('search.typesense.host', 'http://typesense:8108');
+        $key  = $config->get('search.typesense.key', '');
+
+        return new TypesenseDriver(
+            is_string($host) ? $host : 'http://typesense:8108',
             is_string($key) ? $key : '',
         );
     }

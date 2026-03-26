@@ -176,7 +176,8 @@ src/
 ├── Drivers/
 │   ├── NullDriver.php              — in-memory driver for testing; simple substring search
 │   ├── MeilisearchDriver.php       — Meilisearch REST API adapter (native cURL)
-│   └── ElasticsearchDriver.php     — Elasticsearch REST API adapter (native cURL)
+│   ├── ElasticsearchDriver.php     — Elasticsearch REST API adapter (native cURL)
+│   └── TypesenseDriver.php         — Typesense REST API adapter (native cURL); auto-creates collections
 ├── Events/
 │   ├── DocumentIndexed.php         — fired after a document is added/replaced
 │   └── DocumentRemoved.php         — fired after a document is removed
@@ -199,7 +200,9 @@ src/
 
 **`NullDriver`** — Stores documents in a PHP array. `search()` performs case-insensitive substring matching across scalar values. `all()` returns the raw store for test assertions.
 
-**`MeilisearchDriver` / `ElasticsearchDriver`** — REST API adapters using native PHP cURL. No external HTTP package dependency. All API errors throw `SearchException`.
+**`MeilisearchDriver` / `ElasticsearchDriver` / `TypesenseDriver`** — REST API adapters using native PHP cURL. No external HTTP package dependency. All API errors throw `SearchException`.
+
+**`TypesenseDriver`** — Collections are created automatically on first `index()` using a wildcard auto-schema (`fields: [{"name": ".*", "type": "auto"}]`). `flush()` drops the entire collection (schema + documents); the next `index()` call recreates it. IDs are cast to string (Typesense requirement). Authentication via `X-TYPESENSE-API-KEY` header.
 
 **`SyncSearchIndex`** — Listens for any event implementing `HasSearchableModel` and calls `add()` or `remove()` on `SearchIndex`. Constructed with `$remove = true` for delete events.
 
@@ -222,12 +225,14 @@ Unit tests use `NullDriver` exclusively — no external services required.
 
 Integration tests (`#[Group('meilisearch')]`) require a running Meilisearch instance. They skip automatically (via `markTestSkipped`) when Meilisearch is unreachable.
 
+Integration tests for Typesense (`#[Group('typesense')]`) require a running Typesense instance. They skip automatically when Typesense is unreachable.
+
 In the standalone Docker environment:
 - `meilisearch` service is defined in `docker-compose.yml` (port 7700)
 - All tests run inside the `app` container
 
 In the CI compatibility matrix:
-- Only unit tests run (`--exclude-group meilisearch,elasticsearch`)
+- Only unit tests run (`--exclude-group meilisearch,elasticsearch,typesense`)
 
 ### Infrastructure requirements
 
