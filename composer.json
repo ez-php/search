@@ -1,6 +1,6 @@
 {
   "name": "ez-php/search",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "Full-text search module for ez-php — Meilisearch and Elasticsearch drivers with event-driven index synchronisation",
   "type": "library",
   "license": "MIT",
