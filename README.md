@@ -141,6 +141,7 @@ class ArticleSaved implements EventInterface, HasSearchableModel
 | `null` | `NullDriver` | In-memory, for testing — no external service required |
 | `meilisearch` | `MeilisearchDriver` | Meilisearch v1.x REST API |
 | `elasticsearch` | `ElasticsearchDriver` | Elasticsearch 8.x / OpenSearch REST API |
+| `typesense` | `TypesenseDriver` | Typesense REST API; auto-creates collections with wildcard schema |
 
 ## Docker
 
