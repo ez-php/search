@@ -156,7 +156,7 @@ When adding a new module, add `"$ROOT/modules/<name>"` to the `PACKAGES` array i
 
 # Package: ez-php/search
 
-Full-text search module for ez-php. Provides a driver-based abstraction over Meilisearch and Elasticsearch, event-driven index synchronisation via `ez-php/events`, and an in-memory `NullDriver` for testing.
+Full-text search module for ez-php. Provides a driver-based abstraction over Meilisearch, Elasticsearch, and Typesense, event-driven index synchronisation via `ez-php/events`, and an in-memory `NullDriver` for testing.
 
 ---
 

@@ -1,6 +1,6 @@
 # ez-php/search
 
-Full-text search module for [ez-php](https://github.com/ez-php/framework). Provides a driver-based search abstraction with support for Meilisearch and Elasticsearch, event-driven index synchronisation via `ez-php/events`, and an in-memory `NullDriver` for testing.
+Full-text search module for [ez-php](https://github.com/ez-php/framework). Provides a driver-based search abstraction with support for Meilisearch, Elasticsearch, and Typesense, event-driven index synchronisation via `ez-php/events`, and an in-memory `NullDriver` for testing.
 
 ## Installation
 
@@ -13,7 +13,7 @@ composer require ez-php/search
 - PHP 8.5+
 - `ez-php/contracts`
 - `ez-php/events`
-- A running Meilisearch or Elasticsearch instance (or use `NullDriver` for tests)
+- A running Meilisearch, Elasticsearch, or Typesense instance (or use `NullDriver` for tests)
 
 ## Configuration
 
@@ -21,7 +21,7 @@ Add `config/search.php` to your application:
 
 ```php
 return [
-    'driver' => getenv('SEARCH_DRIVER') ?: 'null', // null | meilisearch | elasticsearch
+    'driver' => getenv('SEARCH_DRIVER') ?: 'null', // null | meilisearch | elasticsearch | typesense
 
     'meilisearch' => [
         'host' => getenv('MEILISEARCH_HOST') ?: 'http://meilisearch:7700',
@@ -32,6 +32,11 @@ return [
         'host'     => getenv('ELASTICSEARCH_HOST')     ?: 'http://elasticsearch:9200',
         'user'     => getenv('ELASTICSEARCH_USER')     ?: '',
         'password' => getenv('ELASTICSEARCH_PASSWORD') ?: '',
+    ],
+
+    'typesense' => [
+        'host' => getenv('TYPESENSE_HOST') ?: 'http://typesense:8108',
+        'key'  => getenv('TYPESENSE_KEY')  ?: '',
     ],
 ];
 ```
