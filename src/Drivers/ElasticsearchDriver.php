@@ -171,6 +171,7 @@ final class ElasticsearchDriver implements SearchDriverInterface
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
         curl_setopt($ch, CURLOPT_TIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 3);
 
         $headers = ['Content-Type: application/json', 'Accept: application/json'];
 

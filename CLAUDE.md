@@ -129,6 +129,14 @@ vendor/bin/docker-init
 
 This copies `Dockerfile`, `docker-compose.yml`, `.env.example`, `start.sh`, and `docker/` into the module, replacing `{{MODULE_NAME}}` placeholders. Existing files are never overwritten.
 
+Pass `--services` to merge MySQL/Redis service definitions directly into `docker-compose.yml` and uncomment the matching sections in `.env.example`, instead of adapting them by hand afterward:
+
+```
+vendor/bin/docker-init --services=mysql
+vendor/bin/docker-init --services=redis
+vendor/bin/docker-init --services=mysql,redis
+```
+
 After scaffolding:
 
 1. Adapt `docker-compose.yml` — add or remove services (MySQL, Redis) as needed
@@ -229,6 +237,8 @@ Unit tests use `NullDriver` exclusively — no external services required.
 Integration tests (`#[Group('meilisearch')]`) require a running Meilisearch instance. They skip automatically (via `markTestSkipped`) when Meilisearch is unreachable.
 
 Integration tests for Typesense (`#[Group('typesense')]`) require a running Typesense instance. They skip automatically when Typesense is unreachable.
+
+Integration tests for Elasticsearch (`#[Group('elasticsearch')]`) require a running Elasticsearch instance. They skip automatically when Elasticsearch is unreachable. No `elasticsearch` service is defined in this monorepo's `docker-compose.yml`, so `ElasticsearchDriverTest` always skips here — point `ELASTICSEARCH_HOST` at a real cluster to exercise it.
 
 In the standalone Docker environment:
 - `meilisearch` service is defined in `docker-compose.yml` (port 7700)
