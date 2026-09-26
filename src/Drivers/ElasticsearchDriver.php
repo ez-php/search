@@ -57,6 +57,10 @@ final class ElasticsearchDriver implements SearchDriverInterface
     }
 
     /**
+     * Removing a document that does not exist is a no-op: Elasticsearch answers
+     * 404 with `"result":"not_found"`, which is swallowed. Any other 404 (e.g. a
+     * missing index) still throws.
+     *
      * @param string     $indexName
      * @param string|int $id
      *
@@ -64,7 +68,13 @@ final class ElasticsearchDriver implements SearchDriverInterface
      */
     public function remove(string $indexName, string|int $id): void
     {
-        $this->request('DELETE', "/{$indexName}/_doc/{$id}");
+        try {
+            $this->request('DELETE', "/{$indexName}/_doc/{$id}");
+        } catch (SearchException $e) {
+            if (!str_contains($e->getMessage(), 'HTTP 404') || !str_contains($e->getMessage(), '"result":"not_found"')) {
+                throw $e;
+            }
+        }
     }
 
     /**
@@ -136,15 +146,26 @@ final class ElasticsearchDriver implements SearchDriverInterface
     /**
      * Remove all documents from the index using a delete-by-query.
      *
+     * Flushing an index that does not exist yet is a no-op (Elasticsearch answers
+     * 404), matching the other drivers. `refresh=true` makes the deletion visible
+     * to the next search immediately.
+     *
      * @param string $indexName
      *
      * @return void
      */
     public function flush(string $indexName): void
     {
-        $this->request('POST', "/{$indexName}/_delete_by_query", [
-            'query' => ['match_all' => new stdClass()],
-        ]);
+        try {
+            $this->request('POST', "/{$indexName}/_delete_by_query?refresh=true", [
+                'query' => ['match_all' => new stdClass()],
+            ]);
+        } catch (SearchException $e) {
+            // Index absent — nothing to flush.
+            if (!str_contains($e->getMessage(), 'HTTP 404')) {
+                throw $e;
+            }
+        }
     }
 
     /**

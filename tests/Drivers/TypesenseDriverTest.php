@@ -34,14 +34,24 @@ final class TypesenseDriverTest extends TestCase
     private TypesenseDriver $driver;
 
     /**
+     * Why the server was unreachable, cached for the whole class: the first failed
+     * probe costs a full connect/DNS timeout, every later test skips immediately.
+     */
+    private static ?string $unreachable = null;
+
+    /**
      * @return void
      */
     protected function setUp(): void
     {
         parent::setUp();
 
+        if (self::$unreachable !== null) {
+            $this->markTestSkipped(self::$unreachable);
+        }
+
         $host = getenv('TYPESENSE_HOST');
-        $key = getenv('TYPESENSE_API_KEY');
+        $key = getenv('TYPESENSE_KEY');
 
         $resolvedHost = is_string($host) && $host !== '' ? $host : self::HOST;
         $resolvedKey = is_string($key) && $key !== '' ? $key : self::API_KEY;
@@ -50,7 +60,8 @@ final class TypesenseDriverTest extends TestCase
             $this->driver = new TypesenseDriver($resolvedHost, $resolvedKey);
             $this->driver->flush(self::TEST_INDEX);
         } catch (Throwable $e) {
-            $this->markTestSkipped('Typesense not reachable: ' . $e->getMessage());
+            self::$unreachable = 'Typesense not reachable: ' . $e->getMessage();
+            $this->markTestSkipped(self::$unreachable);
         }
     }
 
@@ -60,6 +71,10 @@ final class TypesenseDriverTest extends TestCase
     protected function tearDown(): void
     {
         parent::tearDown();
+
+        if (self::$unreachable !== null) {
+            return;
+        }
 
         try {
             $this->driver->flush(self::TEST_INDEX);
@@ -114,9 +129,11 @@ final class TypesenseDriverTest extends TestCase
         // After flush, the collection is deleted; indexing recreates it.
         $this->driver->index(self::TEST_INDEX, 'doc-4', ['title' => 'After flush']);
 
-        $result = $this->driver->search(self::TEST_INDEX, 'Before flush', new SearchOptions());
+        // Match-all, not a text query: Typesense drops query tokens by default, so
+        // searching "Before flush" would still hit doc-4 through the token "flush".
+        $result = $this->driver->search(self::TEST_INDEX, '', new SearchOptions());
 
-        $this->assertSame(0, $result->total);
+        $this->assertSame(1, $result->total);
     }
 
     public function testFlushNonExistentCollectionDoesNotThrow(): void

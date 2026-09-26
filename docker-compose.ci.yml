@@ -1,0 +1,34 @@
+# Opt-in backends for the Elasticsearch and Typesense driver tests.
+#
+# Not part of the default local stack (Elasticsearch alone needs ~1 GB RAM);
+# CI layers it on top of docker-compose.yml. To run those tests locally:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
+#
+# No host ports are published — the app container reaches both services over the
+# Compose network at the hostnames the tests default to (elasticsearch:9200,
+# typesense:8108), so nothing here needs an entry in the allocated-ports table.
+
+services:
+
+  app:
+    depends_on:
+      elasticsearch:
+        condition: service_started
+      typesense:
+        condition: service_started
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.15.3
+    container_name: ez-php-search-elasticsearch
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+
+  typesense:
+    image: typesense/typesense:27.1
+    container_name: ez-php-search-typesense
+    command: ["--data-dir=/data", "--api-key=test-api-key", "--enable-cors"]
+    tmpfs:
+      - /data

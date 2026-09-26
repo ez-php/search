@@ -35,6 +35,12 @@ final class ElasticsearchDriverTest extends TestCase
 
     private ElasticsearchDriver $driver;
 
+    /**
+     * Why the server was unreachable, cached for the whole class: the first failed
+     * probe costs a full connect/DNS timeout, every later test skips immediately.
+     */
+    private static ?string $unreachable = null;
+
     private string $resolvedHost = self::HOST;
 
     /**
@@ -43,6 +49,10 @@ final class ElasticsearchDriverTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        if (self::$unreachable !== null) {
+            $this->markTestSkipped(self::$unreachable);
+        }
 
         $host = getenv('ELASTICSEARCH_HOST');
         $user = getenv('ELASTICSEARCH_USER');
@@ -56,7 +66,8 @@ final class ElasticsearchDriverTest extends TestCase
             $this->driver = new ElasticsearchDriver($this->resolvedHost, $resolvedUser, $resolvedPassword);
             $this->driver->flush(self::TEST_INDEX);
         } catch (Throwable $e) {
-            $this->markTestSkipped('Elasticsearch not reachable: ' . $e->getMessage());
+            self::$unreachable = 'Elasticsearch not reachable: ' . $e->getMessage();
+            $this->markTestSkipped(self::$unreachable);
         }
     }
 
@@ -66,6 +77,10 @@ final class ElasticsearchDriverTest extends TestCase
     protected function tearDown(): void
     {
         parent::tearDown();
+
+        if (self::$unreachable !== null) {
+            return;
+        }
 
         try {
             $this->driver->flush(self::TEST_INDEX);
@@ -113,6 +128,13 @@ final class ElasticsearchDriverTest extends TestCase
     public function testRemoveNonExistentDocumentDoesNotThrow(): void
     {
         $this->driver->remove(self::TEST_INDEX, 'non-existent-id');
+
+        $this->addToAssertionCount(1);
+    }
+
+    public function testFlushNonExistentIndexDoesNotThrow(): void
+    {
+        $this->driver->flush('nonexistent_index_xyz');
 
         $this->addToAssertionCount(1);
     }
@@ -185,6 +207,5 @@ final class ElasticsearchDriverTest extends TestCase
         curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'POST');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_exec($ch);
-        curl_close($ch);
     }
 }
