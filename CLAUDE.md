@@ -282,7 +282,7 @@ src/
 ├── SearchIndex.php                 — main orchestrator: add/remove/search/flush + events
 ├── SearchServiceProvider.php       — binds SearchIndex; reads config/search.php
 ├── Drivers/
-│   ├── NullDriver.php              — in-memory driver for testing; simple substring search
+│   ├── NullDriver.php              — in-memory driver for tests/local dev: all-terms substring match, `field = value` AND filters, `field:asc|desc` sort
 │   ├── MeilisearchDriver.php       — Meilisearch REST API adapter (native cURL)
 │   ├── ElasticsearchDriver.php     — Elasticsearch REST API adapter (native cURL)
 │   └── TypesenseDriver.php         — Typesense REST API adapter (native cURL); auto-creates collections
@@ -306,7 +306,7 @@ src/
 
 **`SearchServiceProvider`** — Reads `search.driver` config, creates the appropriate driver, and binds `SearchIndex`. Uses `Event::getDispatcher()` so that events flow through the EventServiceProvider's wired dispatcher when both providers are registered.
 
-**`NullDriver`** — Stores documents in a PHP array. `search()` performs case-insensitive substring matching across scalar values. `all()` returns the raw store for test assertions.
+**`NullDriver`** — The in-memory driver (despite the name it stores and returns documents): documents live in a PHP array; `search()` requires every whitespace-separated query term to occur case-insensitively in some scalar value, applies `SearchOptions::$filter` conditions of the form `field = value` / `field != value` joined by `AND` (quoted or bare values; any other syntax throws `SearchException` rather than being ignored), orders by `SearchOptions::$sort` (`field:asc|desc`, numeric-aware) and then pages with offset/limit. Every hit scores `1.0` — no relevance ranking. `all()` returns the raw store for test assertions.
 
 **`MeilisearchDriver` / `ElasticsearchDriver` / `TypesenseDriver`** — REST API adapters using native PHP cURL. No external HTTP package dependency. All API errors throw `SearchException`.
 

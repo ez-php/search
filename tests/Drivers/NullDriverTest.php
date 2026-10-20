@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Drivers;
 
 use EzPhp\Search\Drivers\NullDriver;
+use EzPhp\Search\SearchException;
 use EzPhp\Search\SearchHit;
 use EzPhp\Search\SearchOptions;
 use EzPhp\Search\SearchResult;
@@ -21,6 +22,7 @@ use Tests\TestCase;
 #[UsesClass(SearchOptions::class)]
 #[UsesClass(SearchResult::class)]
 #[UsesClass(SearchHit::class)]
+#[UsesClass(SearchException::class)]
 final class NullDriverTest extends TestCase
 {
     private NullDriver $driver;
@@ -203,5 +205,66 @@ final class NullDriverTest extends TestCase
         $this->driver->flush('articles');
 
         $this->assertArrayHasKey('products', $this->driver->all());
+    }
+
+    /**
+     * @return void
+     */
+    public function test_search_requires_every_query_term(): void
+    {
+        $this->driver->index('articles', 1, ['title' => 'PHP framework', 'body' => 'small core']);
+        $this->driver->index('articles', 2, ['title' => 'PHP tips']);
+
+        $result = $this->driver->search('articles', 'php core', new SearchOptions());
+
+        $this->assertSame([1], array_map(static fn (SearchHit $h): int|string => $h->id, $result->hits));
+    }
+
+    /**
+     * @return void
+     */
+    public function test_simple_equality_filters_are_applied(): void
+    {
+        $this->driver->index('articles', 1, ['title' => 'A', 'status' => 'published', 'views' => 10]);
+        $this->driver->index('articles', 2, ['title' => 'B', 'status' => 'draft', 'views' => 10]);
+        $this->driver->index('articles', 3, ['title' => 'C', 'status' => 'published', 'views' => 3]);
+
+        $published = $this->driver->search('articles', '', (new SearchOptions())->withFilter('status = "published"'));
+        $this->assertSame(2, $published->total);
+
+        $both = $this->driver->search('articles', '', (new SearchOptions())->withFilter("status = 'published' AND views = 10"));
+        $this->assertSame([1], array_map(static fn (SearchHit $h): int|string => $h->id, $both->hits));
+
+        $notDraft = $this->driver->search('articles', '', (new SearchOptions())->withFilter('status != draft'));
+        $this->assertSame(2, $notDraft->total);
+    }
+
+    /**
+     * @return void
+     */
+    public function test_unsupported_filter_syntax_throws(): void
+    {
+        $this->driver->index('articles', 1, ['views' => 10]);
+
+        $this->expectException(SearchException::class);
+
+        $this->driver->search('articles', '', (new SearchOptions())->withFilter('views > 5 OR views < 2'));
+    }
+
+    /**
+     * @return void
+     */
+    public function test_sort_descriptors_order_hits_before_pagination(): void
+    {
+        $this->driver->index('products', 'a', ['name' => 'Anvil', 'price' => 30]);
+        $this->driver->index('products', 'b', ['name' => 'Bolt', 'price' => 5]);
+        $this->driver->index('products', 'c', ['name' => 'Chain', 'price' => 12]);
+
+        $cheapest = $this->driver->search('products', '', (new SearchOptions())->withSort(['price:asc'])->withLimit(2));
+        $this->assertSame(['b', 'c'], array_map(static fn (SearchHit $h): int|string => $h->id, $cheapest->hits));
+        $this->assertSame(3, $cheapest->total);
+
+        $byName = $this->driver->search('products', '', (new SearchOptions())->withSort(['name:desc']));
+        $this->assertSame(['c', 'b', 'a'], array_map(static fn (SearchHit $h): int|string => $h->id, $byName->hits));
     }
 }

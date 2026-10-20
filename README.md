@@ -143,7 +143,7 @@ class ArticleSaved implements EventInterface, HasSearchableModel
 
 | Driver | Class | Notes |
 |---|---|---|
-| `null` | `NullDriver` | In-memory, for testing — no external service required |
+| `null` | `NullDriver` | In-memory, for tests and local development — no external service; all-terms substring match, simple `field = value` / `!=` filters joined by `AND`, `field:asc\|desc` sort; not relevance-ranked |
 | `meilisearch` | `MeilisearchDriver` | Meilisearch v1.x REST API |
 | `elasticsearch` | `ElasticsearchDriver` | Elasticsearch 8.x / OpenSearch REST API |
 | `typesense` | `TypesenseDriver` | Typesense REST API; auto-creates collections with wildcard schema |
