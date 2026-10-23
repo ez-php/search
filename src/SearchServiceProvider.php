@@ -29,6 +29,12 @@ use EzPhp\Search\Drivers\TypesenseDriver;
  */
 final class SearchServiceProvider extends ServiceProvider
 {
+    private const string DEFAULT_MEILISEARCH_HOST = 'http://meilisearch:7700';
+
+    private const string DEFAULT_TYPESENSE_HOST = 'http://typesense:8108';
+
+    private const string DEFAULT_ELASTICSEARCH_HOST = 'http://elasticsearch:9200';
+
     /**
      * @return void
      */
@@ -60,11 +66,11 @@ final class SearchServiceProvider extends ServiceProvider
      */
     private function makeMeilisearch(ConfigInterface $config): MeilisearchDriver
     {
-        $host = $config->get('search.meilisearch.host', 'http://meilisearch:7700');
+        $host = $config->get('search.meilisearch.host', self::DEFAULT_MEILISEARCH_HOST);
         $key = $config->get('search.meilisearch.key', '');
 
         return new MeilisearchDriver(
-            is_string($host) ? $host : 'http://meilisearch:7700',
+            is_string($host) ? $host : self::DEFAULT_MEILISEARCH_HOST,
             is_string($key) ? $key : '',
         );
     }
@@ -76,11 +82,11 @@ final class SearchServiceProvider extends ServiceProvider
      */
     private function makeTypesense(ConfigInterface $config): TypesenseDriver
     {
-        $host = $config->get('search.typesense.host', 'http://typesense:8108');
+        $host = $config->get('search.typesense.host', self::DEFAULT_TYPESENSE_HOST);
         $key = $config->get('search.typesense.key', '');
 
         return new TypesenseDriver(
-            is_string($host) ? $host : 'http://typesense:8108',
+            is_string($host) ? $host : self::DEFAULT_TYPESENSE_HOST,
             is_string($key) ? $key : '',
         );
     }
@@ -92,12 +98,12 @@ final class SearchServiceProvider extends ServiceProvider
      */
     private function makeElasticsearch(ConfigInterface $config): ElasticsearchDriver
     {
-        $host = $config->get('search.elasticsearch.host', 'http://elasticsearch:9200');
+        $host = $config->get('search.elasticsearch.host', self::DEFAULT_ELASTICSEARCH_HOST);
         $user = $config->get('search.elasticsearch.user', '');
         $pass = $config->get('search.elasticsearch.password', '');
 
         return new ElasticsearchDriver(
-            is_string($host) ? $host : 'http://elasticsearch:9200',
+            is_string($host) ? $host : self::DEFAULT_ELASTICSEARCH_HOST,
             is_string($user) ? $user : '',
             is_string($pass) ? $pass : '',
         );
