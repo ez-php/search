@@ -9,11 +9,14 @@ use EzPhp\Contracts\ConfigInterface;
 use EzPhp\Contracts\ContainerInterface;
 use EzPhp\Events\EventDispatcher;
 use EzPhp\Events\EventServiceProvider;
+use EzPhp\Search\Console\SearchFlushCommand;
+use EzPhp\Search\Console\SearchImportCommand;
 use EzPhp\Search\Drivers\ElasticsearchDriver;
 use EzPhp\Search\Drivers\MeilisearchDriver;
 use EzPhp\Search\Drivers\NullDriver;
 use EzPhp\Search\Drivers\TypesenseDriver;
 use EzPhp\Search\SearchDriverInterface;
+use EzPhp\Search\SearchImportSources;
 use EzPhp\Search\SearchIndex;
 use EzPhp\Search\SearchServiceProvider;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -28,6 +31,7 @@ use Tests\ApplicationTestCase;
  */
 #[CoversClass(SearchServiceProvider::class)]
 #[UsesClass(SearchIndex::class)]
+#[UsesClass(SearchImportSources::class)]
 #[UsesClass(NullDriver::class)]
 #[UsesClass(MeilisearchDriver::class)]
 #[UsesClass(ElasticsearchDriver::class)]
@@ -51,6 +55,18 @@ final class SearchServiceProviderTest extends ApplicationTestCase
     public function test_search_index_is_bound_in_container(): void
     {
         $this->assertInstanceOf(SearchIndex::class, $this->app()->make(SearchIndex::class));
+    }
+
+    /**
+     * @return void
+     */
+    public function test_import_sources_are_a_shared_registry_and_commands_are_registered(): void
+    {
+        $sources = $this->app()->make(SearchImportSources::class);
+
+        $this->assertSame($sources, $this->app()->make(SearchImportSources::class));
+        $this->assertContains(SearchImportCommand::class, $this->app()->getCommands());
+        $this->assertContains(SearchFlushCommand::class, $this->app()->getCommands());
     }
 
     /**

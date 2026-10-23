@@ -6,8 +6,12 @@ namespace EzPhp\Search;
 
 use EzPhp\Contracts\ConfigInterface;
 use EzPhp\Contracts\ContainerInterface;
+use EzPhp\Contracts\DatabaseInterface;
 use EzPhp\Contracts\ServiceProvider;
 use EzPhp\Events\Event;
+use EzPhp\Search\Console\SearchFlushCommand;
+use EzPhp\Search\Console\SearchImportCommand;
+use EzPhp\Search\Drivers\DatabaseDriver;
 use EzPhp\Search\Drivers\ElasticsearchDriver;
 use EzPhp\Search\Drivers\MeilisearchDriver;
 use EzPhp\Search\Drivers\NullDriver;
@@ -49,6 +53,7 @@ final class SearchServiceProvider extends ServiceProvider
                 'meilisearch' => $this->makeMeilisearch($config),
                 'elasticsearch' => $this->makeElasticsearch($config),
                 'typesense' => $this->makeTypesense($config),
+                'database' => $this->makeDatabase($config),
                 default => new NullDriver(),
             };
 
@@ -57,6 +62,38 @@ final class SearchServiceProvider extends ServiceProvider
             // a standalone dispatcher with no listeners — events fire but are silently dropped.
             return new SearchIndex($driver, Event::getDispatcher());
         });
+
+        // One registry per application: providers register their import sources on it in boot().
+        $this->app->bind(SearchImportSources::class, fn (): SearchImportSources => new SearchImportSources());
+    }
+
+    /**
+     * Registers `search:import` and `search:flush` (need ez-php/console, a suggest;
+     * registered by class name, so nothing is autoloaded unless the console runs them).
+     *
+     * @return void
+     */
+    public function boot(): void
+    {
+        $this->registerCommand(SearchImportCommand::class);
+        $this->registerCommand(SearchFlushCommand::class);
+    }
+
+    /**
+     * The database driver on the application's DatabaseInterface (MySQL FULLTEXT / SQLite FTS5).
+     *
+     * @param ConfigInterface $config
+     *
+     * @return DatabaseDriver
+     */
+    private function makeDatabase(ConfigInterface $config): DatabaseDriver
+    {
+        $table = $config->get('search.database.table', 'search_documents');
+
+        return new DatabaseDriver(
+            $this->app->make(DatabaseInterface::class),
+            is_string($table) && $table !== '' ? $table : 'search_documents',
+        );
     }
 
     /**

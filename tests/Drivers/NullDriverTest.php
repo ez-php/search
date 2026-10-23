@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Drivers;
 
+use EzPhp\Search\Drivers\DocumentFilter;
 use EzPhp\Search\Drivers\NullDriver;
 use EzPhp\Search\SearchException;
 use EzPhp\Search\SearchHit;
@@ -19,6 +20,7 @@ use Tests\TestCase;
  * @package Tests\Drivers
  */
 #[CoversClass(NullDriver::class)]
+#[CoversClass(DocumentFilter::class)]
 #[UsesClass(SearchOptions::class)]
 #[UsesClass(SearchResult::class)]
 #[UsesClass(SearchHit::class)]

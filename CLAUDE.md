@@ -281,8 +281,14 @@ src/
 ├── SearchResult.php                — immutable value object: hits list, total, took
 ├── SearchException.php             — base exception (extends EzPhpException)
 ├── SearchIndex.php                 — main orchestrator: add/remove/search/flush + events
-├── SearchServiceProvider.php       — binds SearchIndex; reads config/search.php
+├── SearchServiceProvider.php       — binds SearchIndex + SearchImportSources; reads config/search.php; registers search:import/search:flush
+├── SearchImportSources.php         — named closures yielding SearchableInterface documents for search:import
+├── Console/
+│   ├── SearchImportCommand.php     — `search:import <source>`: SearchIndex::add() for every document of a registered source
+│   └── SearchFlushCommand.php      — `search:flush <index>`: SearchIndex::flush()
 ├── Drivers/
+│   ├── DocumentFilter.php          — @internal: `field = value` AND filters + `field:asc|desc` sort, shared by NullDriver and DatabaseDriver
+│   ├── DatabaseDriver.php          — DatabaseInterface driver: MySQL InnoDB FULLTEXT / SQLite FTS5 table (auto-DDL), relevance order, PHP-side filters/sort
 │   ├── NullDriver.php              — in-memory driver for tests/local dev: all-terms substring match, `field = value` AND filters, `field:asc|desc` sort
 │   ├── MeilisearchDriver.php       — Meilisearch REST API adapter (native cURL)
 │   ├── ElasticsearchDriver.php     — Elasticsearch REST API adapter (native cURL)
@@ -311,9 +317,13 @@ src/
 
 **`MeilisearchDriver` / `ElasticsearchDriver` / `TypesenseDriver`** — REST API adapters using native PHP cURL. No external HTTP package dependency. All API errors throw `SearchException`.
 
+**`DatabaseDriver`** — For deployments with a database but no search server. One table for every index (`index_name`, `doc_id`, JSON `document`, `content` = the document's scalar values), created on first use: InnoDB with a `FULLTEXT` key on MySQL, an FTS5 virtual table on SQLite (PostgreSQL is rejected at construction). `index()` replaces by delete + insert in one transaction (FTS5 has no unique key). The query is reduced to letters/digits — operators of either syntax cannot leak in — and every term is required as a prefix (`+term*` / `"term"*`); hits are ordered by relevance (`MATCH … AGAINST` score / `-bm25()`) unless a sort is given. Filters and sort run in PHP via `DocumentFilter` (NullDriver's rules), after all matches are loaded — the trade-off that keeps one code path for both dialects, acceptable for small indexes. MySQL ignores words below `innodb_ft_min_token_size` (3) and stopwords.
+
 **`ElasticsearchDriver`** — `flush()` on an index that does not exist yet and `remove()` of a missing document are no-ops (404 swallowed), matching the other drivers; `flush()` uses `refresh=true` so the deletion is visible to the next search.
 
 **`TypesenseDriver`** — Collections are created automatically on first `index()` using a wildcard auto-schema (`fields: [{"name": ".*", "type": "auto"}]`). `flush()` drops the entire collection (schema + documents); the next `index()` call recreates it. IDs are cast to string (Typesense requirement). Authentication via `X-TYPESENSE-API-KEY` header.
+
+**`SearchImportSources` / `search:import` / `search:flush`** — The registry maps a name to a closure returning `iterable<SearchableInterface>`; applications register theirs in a provider's `boot()` (the provider binds one shared instance). `search:import <source>` feeds every document through `SearchIndex::add()` (events fire per document) and stops with exit 1 on an unknown source or a non-`SearchableInterface` value; `search:flush <index>` takes the index name (`searchableAs()`). No ORM coupling: the source decides how documents are loaded.
 
 **`SyncSearchIndex`** — Listens for any event implementing `HasSearchableModel` and calls `add()` or `remove()` on `SearchIndex`. Constructed with `$remove = true` for delete events.
 
@@ -326,6 +336,7 @@ src/
 - **`Event::getDispatcher()` in provider** — always returns a valid dispatcher (creating a standalone one if `EventServiceProvider` is not registered). Events fired with no listeners are silently dropped. This avoids try/catch or has() checks on the container.
 - **`Searchable` trait + `@phpstan-require-implements`** — satisfies PHPStan level 9 for trait usage; `getSearchableKey()` is deliberately NOT provided by the trait to force explicit implementation.
 - **`HasSearchableModel` interface** — decouples `SyncSearchIndex` from any specific ORM or event class; the application wires the listener to its own model events.
+- **Import sources are closures, not an ORM hook** — like `SyncSearchIndex`, the console commands stay ORM-agnostic: the application decides how to load documents (repository, raw PDO, API) and registers it by name. `ez-php/console` is a soft dependency (`suggest` + `require-dev`); `boot()` registers the commands by class name.
 - **Meilisearch as primary driver** — lighter than Elasticsearch, better defaults for small-to-medium datasets. Elasticsearch added as an alternative for teams already running it.
 
 ---
@@ -355,7 +366,7 @@ In the CI compatibility matrix:
 |---|---|---|
 | Meilisearch | Integration tests | 7700 in-container, 7701 on the host |
 
-No MySQL or Redis dependency.
+No Redis dependency. `SearchDatabaseDriverTest` runs the database driver on SQLite FTS5 in memory; `SearchDatabaseDriverMysqlTest` covers the MySQL FULLTEXT branch and skips without `DB_HOST` (the root stack's `db` provides it — the module's own stack has no MySQL).
 
 ---
 

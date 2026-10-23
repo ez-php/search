@@ -132,6 +132,27 @@ class ArticleSaved implements EventInterface, HasSearchableModel
 }
 ```
 
+## Rebuilding an index (`search:import` / `search:flush`)
+
+After a mapping change or on a fresh deploy, re-import documents from the console. The module does not know where your entities live, so register a source — a closure yielding `SearchableInterface` instances — in one of your providers:
+
+```php
+use EzPhp\Search\SearchImportSources;
+
+public function boot(): void
+{
+    $this->app->make(SearchImportSources::class)
+        ->register('articles', fn (): iterable => $this->app->make(ArticleRepository::class)->findAll());
+}
+```
+
+```bash
+php ez search:flush article     # drop every document of the index (searchableAs())
+php ez search:import articles   # index everything the source yields
+```
+
+Each document goes through `SearchIndex::add()`, so `DocumentIndexed` fires as on a normal save. Use a generator for large tables to keep memory flat.
+
 ## Events
 
 | Event | Fired when |
@@ -147,6 +168,7 @@ class ArticleSaved implements EventInterface, HasSearchableModel
 | `meilisearch` | `MeilisearchDriver` | Meilisearch v1.x REST API |
 | `elasticsearch` | `ElasticsearchDriver` | Elasticsearch 8.x / OpenSearch REST API |
 | `typesense` | `TypesenseDriver` | Typesense REST API; auto-creates collections with wildcard schema |
+| `database` | `DatabaseDriver` | The application database — MySQL `FULLTEXT` (`MATCH … AGAINST`, boolean mode) or SQLite FTS5; table `search.database.table` (default `search_documents`) auto-created; every term required as a prefix, relevance-ordered; filters/sort on stored attributes evaluated in PHP (NullDriver syntax) — for small indexes, no typo tolerance or facets |
 
 ## Docker
 
