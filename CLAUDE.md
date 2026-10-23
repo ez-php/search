@@ -299,6 +299,22 @@ src/
 └── Listeners/
     ├── HasSearchableModel.php      — interface for events carrying a SearchableInterface
     └── SyncSearchIndex.php         — ListenerInterface: indexes or removes on model events
+
+tests/
+├── TestCase.php                              — Base PHPUnit test case (identical in every package)
+├── ApplicationTestCase.php                   — bootstrapped Application for provider tests
+├── Fixtures/Article.php                      — SearchableInterface entity via the Searchable trait
+├── SearchIndexTest.php                       — add/remove/search/flush delegation, default options, DocumentIndexed/DocumentRemoved events
+├── SearchServiceProviderTest.php             — SearchIndex binding, shared import-source registry + commands, default/configured driver, event dispatcher wiring
+├── SearchableTest.php                        — trait defaults (searchableAs, toSearchableArray) and overrides
+├── Console/SearchCommandsTest.php            — search:import (per-document events, unknown/missing source, non-document values), search:flush, source registry
+├── Drivers/NullDriverTest.php                — store/replace/remove, term matching, filters, sort, paging, flush
+├── Drivers/SearchDatabaseDriverTest.php      — SQLite FTS5: prefix terms, relevance order, neutralised operators, filters/sort/paging, replace, index isolation, rejected table names
+├── Drivers/SearchDatabaseDriverMysqlTest.php — MySQL FULLTEXT branch; skipped without DB_HOST
+├── Drivers/MeilisearchDriverTest.php         — group meilisearch: index/search/remove/flush against a live server
+├── Drivers/ElasticsearchDriverTest.php       — group elasticsearch: same contract, 404-tolerant remove/flush
+├── Drivers/TypesenseDriverTest.php           — group typesense: same contract, auto-created collections
+└── Integration/EventDrivenIndexSyncTest.php  — SyncSearchIndex: saved/deleted events index and remove, events fired as side effects, re-indexing
 ```
 
 ---
